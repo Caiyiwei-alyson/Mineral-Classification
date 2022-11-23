@@ -5,31 +5,34 @@ Our Checkpoints and Data:
 Baidu Netdisk, Extract Code:
 
 Data prepration:
-Data root:
-  -train
-    - arsenopyrite
-      - .jpg
-      - .jpg
-        ...
+
+```
+data root:
+    -train
+       - arsenopyrite
+         - .jpg
+         - .jpg
+           ...
         - gold
-      - ...
+         - ...
         ...
     -val
-        - arsenopyrite
-      - .jpg
-      - .jpg
-        ...
+       - arsenopyrite
+         - .jpg
+         - .jpg
+           ...
         - gold
-      - ...
+         - ...
         ...
     -test
-        - arsenopyrite
-      - .jpg
-      - .jpg
-        ...
+       - arsenopyrite
+         - .jpg
+         - .jpg
+           ...
         - gold
-      - ...
+         - ...
         ...
+```
 
   Train:
 
