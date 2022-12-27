@@ -36,6 +36,7 @@ def get_loader(args):
                                 transforms.ToTensor(),
                                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
                             )
+        print(f"trainset: {len(trainset)}, testset: {len(testset)}")
     else:
         print('data set error')
 
@@ -55,3 +56,23 @@ def get_loader(args):
                              num_workers=args.num_workers,
                              pin_memory=True) if testset is not None else None
     return train_loader, test_loader
+
+def get_loader_for_test(args):
+    val_images_path = [os.path.join(args.data_root, file_name) for file_name in os.listdir(args.data_root) if file_name.endswith(('.jpg', '.png'))]
+    testset = MyDataSet(images_path=val_images_path,
+                            images_class=None,
+                            transform=transforms.Compose([
+                                transforms.Resize((256, 256), Image.BILINEAR),
+                                transforms.RandomCrop((256, 256)),
+                                transforms.RandomHorizontalFlip(),
+                                AutoAugImageNetPolicy(),
+                                transforms.ToTensor(),
+                                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+                            )
+    test_sampler = SequentialSampler(testset)
+    test_loader = DataLoader(testset,
+                             sampler=test_sampler,
+                             batch_size=1,
+                             num_workers=args.num_workers,
+                             pin_memory=True) if testset is not None else None
+    return test_loader
