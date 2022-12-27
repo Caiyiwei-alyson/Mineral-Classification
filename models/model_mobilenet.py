@@ -1,20 +1,25 @@
 from torch import nn
 import torch
+import math
 
 
-def _make_divisible(ch, divisor=8, min_ch=None):
+def _make_divisible(v, divisor, min_value=None):
     """
     This function is taken from the original tf repo.
     It ensures that all layers have a channel number that is divisible by 8
     It can be seen here:
     https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
+    :param v:
+    :param divisor:
+    :param min_value:
+    :return:
     """
-    if min_ch is None:
-        min_ch = divisor
-    new_ch = max(min_ch, int(ch + divisor / 2) // divisor * divisor)
+    if min_value is None:
+        min_value = divisor
+    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
     # Make sure that round down does not go down by more than 10%.
-    if new_ch < 0.9 * v:
-        new_ch += divisor
+    if new_v < 0.9 * v:
+        new_v += divisor
     return new_v
 
 
@@ -25,6 +30,7 @@ def conv_3x3_bn(inp, oup, stride):
         nn.ReLU6(inplace=True)
     )
 
+
 def conv_1x1_bn(inp, oup):
     return nn.Sequential(
         nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
@@ -32,11 +38,12 @@ def conv_1x1_bn(inp, oup):
         nn.ReLU6(inplace=True)
     )
 
+
 class InvertedResidual(nn.Module):
     def __init__(self, inp, oup, stride, expand_ratio):
         super(InvertedResidual, self).__init__()
         assert stride in [1, 2]
-        
+
         hidden_dim = round(inp * expand_ratio)
         self.identity = stride == 1 and inp == oup
 
@@ -69,8 +76,9 @@ class InvertedResidual(nn.Module):
         if self.identity:
             return x + self.conv(x)
         else:
-            return self.conv(x)        
- 
+            return self.conv(x)
+
+
 class MobileNetV2(nn.Module):
     def __init__(self, num_classes=1000, width_mult=1.):
         super(MobileNetV2, self).__init__()
@@ -128,4 +136,3 @@ class MobileNetV2(nn.Module):
             elif isinstance(m, nn.Linear):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
-
