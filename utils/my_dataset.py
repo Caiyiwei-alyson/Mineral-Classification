@@ -18,11 +18,11 @@ class MyDataSet(Dataset):
         img = Image.open(self.images_path[item])
         if img.mode != 'RGB':
             raise ValueError("image: {} isn't RGB mode.".format(self.images_path[item]))
-        label = self.images_class[item]
+        label = self.images_class[item] if self.images_class is not None else None
 
         if self.transform is not None:
             img = self.transform(img)
-
+        if label is None: return img, self.images_path[item]
         return img, label
 
     @staticmethod
