@@ -16,13 +16,23 @@ from models.model_swin import swin_tiny_patch4_window7_224
 from utils.data_utils import get_loader_for_test
 from sklearn.metrics import classification_report
 import matplotlib.pyplot as plt
+import json
 logger = logging.getLogger(__name__)
+import random
+
+random_seed = 20
+torch.manual_seed(random_seed)
+torch.cuda.manual_seed(random_seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+np.random.seed(random_seed)
+random.seed(random_seed)
 
 
 def setup(args):
     # Prepare model
     if args.dataset == "mineral":
-        num_classes = 7
+        num_classes = 5
     if args.method == 'resnet50':
         model = resnet50(num_classes=num_classes, include_top=True)
         model_weight_path = args.test_pretrain_weights
@@ -73,14 +83,16 @@ def valid(args, model):
                           ncols=80,
                           position=0, leave=True)
 
+    with open('class_indices.json') as f: classes = list(json.load(f).values())
+    classes.sort()
     with torch.no_grad():
         i = 0
-        for x in epoch_iterator:
+        for x, file_name in epoch_iterator:
             x = x.to(args.device)
             logits = model(x)
             i += 1
             preds = torch.argmax(logits, dim=-1)
-            print('this image mineral type: ', preds.item())
+            print(f'{file_name[0]} mineral type: ', classes[preds.item()])
 
 
 if __name__ == "__main__":
@@ -91,11 +103,11 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", choices=['mineral'],
                         default="mineral",
                         help="Which dataset.")
-    parser.add_argument('--data_root', type=str, default=r'E:\paper\microscope image classification article\Mineral-Classification  github\data\preds')
-    parser.add_argument('--root_path', type=str, default=r'E:\paper\microscope image classification article\Mineral-Classification  github\data\preds')
+    parser.add_argument('--data_root', type=str, default=r'data_path')
+    parser.add_argument('--root_path', type=str, default=r'data_path')
     parser.add_argument('--method', type=str, default="swin",
                         choices=["swin", "resnet50", "mobilenet"])
-    parser.add_argument("--test_pretrain_weights", type=str, default=r"E:\paper\microscope image classification article\modeltraining3\trainingrecords\swin_adam_batch16_3e-2\_checkpoint_18000.bin",
+    parser.add_argument("--test_pretrain_weights", type=str, default=r"val_save_root_path",
                         help="test_pretrain_weights path")
     parser.add_argument("--img_size", default=[256, 256], type=int,
                         help="Resolution size")
@@ -143,7 +155,6 @@ if __name__ == "__main__":
                         help="Slide step for overlap split")
 
     args = parser.parse_args()
-    args.data_root = '{}/{}'.format(args.data_root, args.dataset)
     # Setup CUDA, GPU & distributed training
     if args.local_rank == -1:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
