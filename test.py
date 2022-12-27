@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 def setup(args):
     # Prepare model
     if args.dataset == "mineral":
-        num_classes = 7
+        num_classes = 5
     if args.method == 'resnet50':
         model = resnet50(num_classes=num_classes, include_top=True)
         model_weight_path = args.test_pretrain_weights
@@ -95,11 +95,31 @@ def valid(args, model):
                 )
 
     all_preds, all_label = all_preds[0], all_label[0]
-    classes = ['arsenopyrite', 'chalcopyrite', 'galena', 'gold', 'pyrite', 'sphalerite', 'stbnite']
+    np.save(args.this_val_save_path+'matrix_label.npy', all_label)
+    np.save(args.this_val_save_path+'matrix_pred.npy', all_preds)
+    with open('class_indices.json') as f: classes = list(json.load(f).values())
+    classes.sort()
+    maps = {"arsenopyrite": "Apy", "chalcopyrite": "Ccp", "gold":"Gn", "pyrite":"Py", "stibnite":"Stb"}
+    classes = [maps[k] for k in classes]
     plt.figure()
     report = classification_report(all_label, all_preds, target_names=classes, output_dict=True)
-    print(report)
-    print('val accuracy:', report['accuracy'])
+    acc = simple_accuracy(all_preds, all_label)
+    precision, recall, f1 = report['macro avg']['precision'], report['macro avg']['recall'], report['macro avg']['f1-score']
+    for cls in classes: print(cls, report[cls])
+    confusion = confusion_matrix(all_label, all_preds)
+    
+    plt.imshow(confusion, cmap=plt.cm.Blues)
+    indices = range(len(confusion))
+    plt.xticks(indices, classes)
+    plt.yticks(indices, classes)
+    plt.colorbar()
+    plt.xlabel('Predicted label')
+    plt.ylabel('True label')
+    for first_index in range(len(confusion)):
+        for second_index in range(len(confusion[first_index])):
+            plt.text(second_index, first_index, confusion[first_index][second_index])
+    plt.savefig(args.this_val_save_path + 'confusion_matrix.png', dpi=350, format='png')
+    print(f'val: acc {acc}, precision {precision}, recall {recall}, f1 {f1}')
 
 
 if __name__ == "__main__":
@@ -110,9 +130,9 @@ if __name__ == "__main__":
     parser.add_argument("--dataset", choices=['mineral'],
                         default="mineral",
                         help="Which dataset.")
-    parser.add_argument('--data_root', type=str, default=r'C:\data\mineral\data')
-    parser.add_argument('--method', type=str, default="swin_base",
-                        choices=["transfg", "resnet50", "densenet", "mobilenet"])
+    parser.add_argument('--data_root', type=str, default=r'dataset')
+    parser.add_argument('--method', type=str, default="swin",
+                        choices=["swin", "resnet50", "mobilenet"])
     parser.add_argument("--test_pretrain_weights", type=str, default=r"test_pretrain_weights path",
                         help="test_pretrain_weights path")
     parser.add_argument("--this_val_save_path", type=str, default=r"this_val_save_path",
@@ -163,7 +183,7 @@ if __name__ == "__main__":
                         help="Slide step for overlap split")
 
     args = parser.parse_args()
-    args.this_val_save_path = args.this_val_save_path + '\\'
+    args.this_val_save_path = args.this_val_save_path + '/'
     os.makedirs(args.this_val_save_path, exist_ok=True)
     args.data_root = '{}/{}'.format(args.data_root, args.dataset)
     # Setup CUDA, GPU & distributed training
